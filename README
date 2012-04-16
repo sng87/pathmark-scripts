@@ -1,0 +1,4 @@
+install.packages("getopt")
+source("http://bioconductor.org/biocLite.R")
+biocLite("Biobase")
+biocLite("multtest")
