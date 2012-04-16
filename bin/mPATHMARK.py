@@ -8,8 +8,7 @@ class Pathway:
         (self.nodes, self.interactions) = removeNode(node, self.nodes, self.interactions)
 
 def log(msg, die = False):
-    if (verbose):
-        sys.stderr.write(msg)
+    sys.stderr.write(msg)
     if (die):
         sys.exit(1)
 
