@@ -38,7 +38,7 @@ if os.path.exists("include.samples"):
     allSamples = rList("include.samples")
 else:
     allSamples = []
-    for sample in retColumns("merge_merged.all.tab")
+    for sample in retColumns("merge_merged.all.tab"):
         if not sample.startswith("na_iter"):
             allSamples.append(sample)
 
