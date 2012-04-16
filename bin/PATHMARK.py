@@ -124,7 +124,7 @@ def PATHMARK(files, globalPathway, features = None, statLine = None,
                 pInteractions[sortedTop[i]]["__DISCONNECTED__"] = "-disconnected-"
         
         ## output node attributes
-        if outputNodeAttributes:
+        if outputAttributes:
             wNodeAttributes(feature, gNodes, uData[0])
         
         ## output networks
