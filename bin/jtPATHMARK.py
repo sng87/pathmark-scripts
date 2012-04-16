@@ -206,7 +206,7 @@ def main():
     Stack.addJobTreeOptions(parser)
     parser.add_option("--jobFile", help="Add as a child of jobFile rather " +
                       "than making a new jobTree")
-    parser.add_option("-b", "--boundaries", dest="boundParams", default="\"1.0;1.0\"")
+    parser.add_option("-b", "--boundaries", dest="boundParams", default="\"0.0;0.0\"")
     parser.add_option("-n", "--nulls", dest="nNulls", default="0")
     options, args = parser.parse_args()
     print "Using Batch System '" + options.batchSystem + "'"
