@@ -7,6 +7,12 @@ class Pathway:
     def removeNode(self, node):
         (self.nodes, self.interactions) = removeNode(node, self.nodes, self.interactions)
 
+def log(msg, die = False):
+    if (verbose):
+        sys.stderr.write(msg)
+    if (die):
+        sys.exit(1)
+
 def openAnyFile(inf):
     """performs an open() on a file or url"""
     if inf.startswith("http"):
