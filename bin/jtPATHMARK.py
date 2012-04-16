@@ -20,7 +20,7 @@ from jobTree.scriptTree.target import Target
 from jobTree.scriptTree.stack import Stack
 
 ## default variables
-paradigmPathway = "/hive/users/sng/map/pathwayFiles/global_five3_v2/pid_110725_pathway.tab"
+paradigmPathway = "../../../paradigm-scripts/pathways/global_v1/pid_500_pathway.tab""
 
 ## executables and directories
 lmExec = "lm.R"
