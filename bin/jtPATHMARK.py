@@ -34,7 +34,7 @@ assert os.path.exists("merge_merged.all.tab")
 featureFile = "feature.tab"
 occamPhenotype = retColumns("feature.tab")[0]
 dataFile = "merge_merged.all.tab"
-if os.path.exists("include.samples")
+if os.path.exists("include.samples"):
     allSamples = rList("include.samples")
 else:
     allSamples = []
@@ -173,17 +173,19 @@ class runPATHMARK(Target):
             system("ln -s %s ." % (paradigmPathway))
         if not os.path.exists("real_results.tab"):
             system("ln ../OCCAM__feature__real/results.tab real_results.tab")
-        if not os.path.exists("null_results.tab"):
-            for null in range(1, self.nNulls + 1):
-                if not os.path.exists("null_results.tmp"):
-                    system("cat ../OCCAM__feature__null_%s/results.tab | transpose.pl | head -n1 >> null_results.tmp" % (null))
-                system("cat ../OCCAM__feature__null_%s/results.tab | transpose.pl | grep \"%s\" | sed 's/%s/N%s/' >> null_results.tmp" % (null, occamPhenotype, occamPhenotype, null))
-            system("cat null_results.tmp | transpose.pl > null_results.tab")
-            system("rm -f null_results.tmp")
+        if self.nNulls > 0:
+            if not os.path.exists("null_results.tab"):
+                for null in range(1, self.nNulls + 1):
+                    if not os.path.exists("null_results.tmp"):
+                        system("cat ../OCCAM__feature__null_%s/results.tab | transpose.pl | head -n1 >> null_results.tmp" % (null))
+                    system("cat ../OCCAM__feature__null_%s/results.tab | transpose.pl | grep \"%s\" | sed 's/%s/N%s/' >> null_results.tmp" % (null, occamPhenotype, occamPhenotype, null))
+                system("cat null_results.tmp | transpose.pl > null_results.tab")
+                system("rm -f null_results.tmp")
         
         system("%s -b %s -f %s -n real_results.tab >& a1" % (pathmarkExec, self.filterParams, occamPhenotype))
-        system("%s -b %s -s a1 -d NULL_%s null_results.tab" % (pathmarkExec, self.filterParams, occamPhenotype))
-        self.setFollowOnTarget(backgroundPATHMARK(self.nNulls, self.directory))
+        if self.nNulls > 0:
+            system("%s -b %s -s a1 -d NULL_%s null_results.tab" % (pathmarkExec, self.filterParams, occamPhenotype))
+            self.setFollowOnTarget(backgroundPATHMARK(self.nNulls, self.directory))
 
 class backgroundPATHMARK(Target):
     def __init__(self, nNulls, directory):
