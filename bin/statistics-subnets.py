@@ -9,7 +9,7 @@ Options:
   -q            run quietly
 """
 import os, os.path, sys, getopt, re, math
-import mData, mPathway, mCalculate
+from mPATHMARK import *
 
 verbose = True
 outStats = False
@@ -64,8 +64,8 @@ def main(args):
         line = line.rstrip("\n\r")
         if line.isspace():
             continue
-        (forNodes, forInteractions) = mPathway.rSIF(line, "node")
-        (revNodes, revInteractions) = mPathway.rSIF(line, "node", reverse = True)
+        (forNodes, forInteractions) = rSIF(line)
+        (revNodes, revInteractions) = rSIF(line, reverse = True)
         for i in forNodes.keys():
             if i not in nodeCounts:
                 nodeCounts[i] = 0
@@ -74,7 +74,7 @@ def main(args):
         totalLinks = 0
         for i in forInteractions.keys():
             totalLinks += len(forInteractions[i].keys())
-        (lNodes, lInteractions) = mPathway.largestConnected(forNodes, forInteractions, revInteractions)
+        (lNodes, lInteractions) = constructInteractions(sortConnected(forNodes, forInteractions, revInteractions, method = "size")[0], forNodes, forInteractions)
         largestNodes = len(lNodes.keys())
         largestLinks = 0
         for i in lInteractions.keys():
@@ -85,10 +85,10 @@ def main(args):
         largestLinks_list.append(largestLinks)
         print "%s\t%s\t%s\t%s\t%s" % (line, totalNodes, totalLinks, largestNodes, largestLinks)
     if (len(totNodes_list) > 1) & outStats:
-        (mean_totNodes, std_totNodes) = mCalculate.mean_std(totNodes_list)
-        (mean_totLinks, std_totLinks) = mCalculate.mean_std(totLinks_list)
-        (mean_largestNodes, std_largestNodes) = mCalculate.mean_std(largestNodes_list)
-        (mean_largestLinks, std_largestLinks) = mCalculate.mean_std(largestLinks_list)
+        (mean_totNodes, std_totNodes) = mean_std(totNodes_list)
+        (mean_totLinks, std_totLinks) = mean_std(totLinks_list)
+        (mean_largestNodes, std_largestNodes) = mean_std(largestNodes_list)
+        (mean_largestLinks, std_largestLinks) = mean_std(largestLinks_list)
         print "MEAN\t%s\t%s\t%s\t%s" % (mean_totNodes, mean_totLinks, mean_largestNodes, mean_largestLinks)
         print "STD\t%s\t%s\t%s\t%s" % (std_totNodes, std_totLinks, std_largestNodes, std_largestLinks)
     if countf != None:

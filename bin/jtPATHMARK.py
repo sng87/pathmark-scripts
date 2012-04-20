@@ -200,6 +200,8 @@ class branchPATHMARK(Target):
                     system("ln %s real_results.all.tab" % (self.scoreFile))
                 else:
                     system("ln ../%s real_results.all.tab" % (self.scoreFile))
+        if len(retColumns("real_results.all.tab")) == 0:
+            log("Differential analysis failed! Exiting PATHMARK ...\n", die = True)
         
         ## iterate through occamPhenotypes
         occamPhenotypes = retColumns("real_results.all.tab")
@@ -232,8 +234,11 @@ class runPATHMARK(Target):
             if not os.path.exists("null_results.%s.tab" % (self.occamPhenotype)):
                 nullScores = {}
                 for null in range(1, self.nNulls + 1):
+                    if len(retColumns("../OCCAM__%s__null_%s/results.tab" % (phenotypeName, null))) == 0:
+                        ## this is an error right now
+                        continue
                     nullScores["N%s" % (null)] = rCRSData("../OCCAM__%s__null_%s/results.tab" % (phenotypeName, null))[self.occamPhenotype]
-                wCRSData("null_results.%s.tmp" % (self.occamPhenotype), nullScores)
+                wCRSData("null_results.%s.tab" % (self.occamPhenotype), nullScores)
         
         ## run pathmark
         system("%s -b %s -f %s -n real_results.all.tab >& %s.params" % (pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype))

@@ -1,4 +1,5 @@
 import math, os, os.path, sys, getopt, re
+from copy import deepcopy
 
 class Pathway:
     def __init__(self, nodes, interactions):
@@ -252,6 +253,25 @@ def mean_std(inList, sample = True):
             std = 0.0
     return(mean, std)
 
+def r2Col(inf, appendData = {}, delim = "\t", null = "NA", header = False):
+    """read 2 column data"""
+    inData = deepcopy(appendData)
+    f = openAnyFile(inf)
+    if header:
+        line = f.readline()
+    for line in f:
+        if line.isspace():
+            continue
+        line = line.rstrip("\r\n")
+        pline = re.split(delim, line)
+        if len(pline[1]) == 0:
+            pline[1] = null
+        if len(pline) != 2:
+            log("ERROR: Length of data line is not 2\n", die = True)
+        inData[pline[0]] = pline[1]
+    f.close()
+    return(inData)
+
 def addLink(a, b, pNodes, pInteractions, gNodes, gInteractions):
     if a not in pNodes:
         pNodes[a] = gNodes[a]
@@ -318,6 +338,47 @@ def wPathway(outf, outNodes, outInteractions, useNodes = None):
             for k in re.split(";", outInteractions[i][j]):
                 f.write("%s\t%s\t%s\n" % (i, j, k))
     f.close()
+
+def rSIF(inf, typef = None, reverse = False):
+    """read .sif"""
+    readPathway = Pathway({}, {})
+    inNodes = {}                            #Dictionary with (A : type)
+    inInteractions = {}                     #Dictionary with (A : (B : interaction))
+    nodeMap = {}
+    if typef != None:
+        nodeMap = r2Col(typef, delim = " = ", header = True)
+    f = open(inf, "r")
+    for line in f:
+        if line.isspace():
+            continue
+        line = line.rstrip("\r\n")
+        pline = re.split("\s*\t\s*", line)
+        if pline[0] not in inNodes:
+            if pline[0] in nodeMap:
+                inNodes[pline[0]] = nodeMap[pline[0]]
+            else:
+                inNodes[pline[0]] = "concept"
+        if pline[2] not in inNodes:
+            if pline[2] in nodeMap:
+                inNodes[pline[2]] = nodeMap[pline[2]]
+            else:
+                inNodes[pline[2]] = "concept"
+        if reverse:
+            if pline[2] not in inInteractions:
+                inInteractions[pline[2]] = {}
+            if pline[0] not in inInteractions[pline[2]]: 
+                inInteractions[pline[2]][pline[0]] = pline[1]
+            else:
+                inInteractions[pline[2]][pline[0]] += ";"+pline[1]
+        else:
+            if pline[0] not in inInteractions:
+                inInteractions[pline[0]] = {}
+            if pline[2] not in inInteractions[pline[0]]:
+                inInteractions[pline[0]][pline[2]] = pline[1]
+            else:
+                inInteractions[pline[0]][pline[2]] += ";"+pline[1]
+    f.close()
+    return(inNodes, inInteractions)
 
 def wSIF(writeFile, writeInteractions, useNodes = None):
     """write .sif"""
