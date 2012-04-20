@@ -30,6 +30,21 @@ def retColumns(inf, delim = "\t"):
     line = line.rstrip("\r\n")
     return(re.split(delim, line)[1:])
 
+def retRows(inf, delim = "\t", index = 0, header = True):
+    """returns the rows of a .tsv"""
+    rows = []
+    f = openAnyFile(inf)
+    if header:
+        line = f.readline()
+        if line.isspace():
+            log("ERROR: encountered a blank header\n", die = True)
+    for line in f:
+        if line.isspace():
+            continue
+        line = line.rstrip("\r\n")
+        rows.append(re.split(delim, line)[index])
+    return(rows)
+
 def rCRSData(inf, appendData = dict(), delim = "\t", retFeatures = False, debug = False):
     """reads .tsv into a [col][row] dictionary"""
     inData = dict()
@@ -81,6 +96,38 @@ def rCRSData(inf, appendData = dict(), delim = "\t", retFeatures = False, debug 
         return(inData, colFeatures, rowFeatures)
     else:
         return(inData)
+
+def wCRSData(outf, outData, delim = "\t", null = "NA", useCols = None, useRows = None):
+    """write [col][row] dictionary to .tsv"""
+    ## get colFeatures and rowFeatures
+    if useCols == None:
+        colFeatures = outData.keys()
+    else:
+        colFeatures = list(useCols)
+    if useRows == None:
+        rowFeatures = []
+        for col in colFeatures:
+            if col in outData:
+                rowFeatures = outData[col].keys()
+                break
+    else:
+        rowFeatures = list(useRows)
+    ## write header
+    if os.path.exists(outf):
+        f = open(outf, "a")
+    else:
+        f = open(outf, "w")
+        f.write("id%s\n" % (delim+delim.join(colFeatures)))
+    ## write data
+    for row in rowFeatures:
+        f.write("%s" % (row))
+        for col in colFeatures:
+            try:
+                f.write("%s" % (delim+str(outData[col][row])))
+            except KeyError:
+                f.write("%s" % (delim+null))
+        f.write("\n")
+    f.close()
 
 def rwCRSData(outf, inf, delim = "\t", null = "NA", useCols = None, useRows = None, colMap = {}, rowMap = {}, rcMap = None):
     """reads and writes .tsv"""

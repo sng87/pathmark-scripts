@@ -21,6 +21,7 @@ from mPATHMARK import *
 from copy import deepcopy
 
 verbose = True
+outputCleaned = False
 
 def usage(code = 0):
     print __doc__
@@ -139,10 +140,12 @@ def PATHMARK(files, globalPathway, features = None, statLine = None,
                                         getComponentMap(gNodes, reverseInteractions(gInteractions)))
         if outputPARADIGM:
             wPARADIGM("%s/%s_%s_nodrug_pathway.tab" % (wrtDir, feature, filterString), pNodes, pInteractions)
-            wPARADIGM("%s/%s_%s_nodrug_cleaned_pathway.tab" % (wrtDir, feature, filterString), cpNodes, cpInteractions)
+            if outputCleaned:
+                wPARADIGM("%s/%s_%s_nodrug_cleaned_pathway.tab" % (wrtDir, feature, filterString), cpNodes, cpInteractions)
         else:
             wSIF("%s/%s_%s_nodrug.sif" % (wrtDir, feature, filterString), pInteractions)
-            wSIF("%s/%s_%s_nodrug_cleaned.sif" % (wrtDir, feature, filterString), cpInteractions)
+            if outputCleaned:
+                wSIF("%s/%s_%s_nodrug_cleaned.sif" % (wrtDir, feature, filterString), cpInteractions)
 
 if __name__ == "__main__":
     ## parse arguments

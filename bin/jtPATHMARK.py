@@ -8,7 +8,7 @@ Optional Configuration Files:
   
 """
 ## Written By: Sam Ng
-## Last Updated: ##/##/####
+## Last Updated: 04/19/2012
 import math, os, os.path, sys, random, re
 from optparse import OptionParser
 from copy import deepcopy
@@ -19,28 +19,11 @@ from jobTree.src.bioio import system
 from jobTree.scriptTree.target import Target
 from jobTree.scriptTree.stack import Stack
 
-## default variables
-paradigmPathway = "../../../pathways/global_v1/pid_500_pathway.tab"
-
 ## executables and directories
 lmExec = "lm.R"
 occamExec = "OCCAM.py"
 pathmarkExec = "PATHMARK.py"
 statisticsExec = "statistics-subnets.py"
-
-## check files
-assert os.path.exists("feature.tab")
-assert os.path.exists("merge_merged.all.tab")
-featureFile = "feature.tab"
-occamPhenotype = retColumns("feature.tab")[0]
-dataFile = "merge_merged.all.tab"
-if os.path.exists("include.samples"):
-    allSamples = rList("include.samples")
-else:
-    allSamples = []
-    for sample in retColumns("merge_merged.all.tab"):
-        if not sample.startswith("na_iter"):
-            allSamples.append(sample)
 
 def writeScripts():
     """creates the R scripts necessary for plotting"""
@@ -82,34 +65,38 @@ def writeScripts():
     system("chmod 755 *.R")
 
 class jtData(Target):
-    def __init__(self, directory):
+    def __init__(self, dataFile, sampleList, directory):
         Target.__init__(self, time=1000)
+        self.dataFile = dataFile
+        self.sampleList = sampleList
         self.directory = directory
     def run(self):
         os.chdir(self.directory)
         
         ## write data
         if not os.path.exists("real.tab"):
-            rwCRSData("real.tab", "%s" % (dataFile), useCols = allSamples)
+            rwCRSData("real.tab", "%s" % (self.dataFile), useCols = self.sampleList)
 
 class jtNData(Target):
-    def __init__(self, null, directory):
+    def __init__(self, null, dataFile, sampleList, directory):
         Target.__init__(self, time=1000)
         self.null = null
+        self.dataFile = dataFile
+        self.sampleList = sampleList
         self.directory = directory
     def run(self):
         os.chdir(self.directory)
         
         ## permute features
         colMap = {}
-        for sample in allSamples:
+        for sample in self.sampleList:
             rindex = random.randint(1,5)
             colMap["na_iter_%s_%s" % (rindex, sample)] = sample
             colMap[sample] = "na_iter_%s_%s" % (rindex, sample)
         
         ## write data
         if not os.path.exists("null_%s.tab" % (self.null)):
-            rwCRSData("null_%s.tab" % (self.null), "%s" % (dataFile), colMap = colMap, useCols = allSamples)
+            rwCRSData("null_%s.tab" % (self.null), "%s" % (self.dataFile), colMap = colMap, useCols = self.sampleList)
 
 class jtCmd(Target):
     def __init__(self, cmd, directory):
@@ -121,45 +108,69 @@ class jtCmd(Target):
         system(self.cmd)
 
 class prepareOCCAM(Target):
-    def __init__(self, filterParams, nNulls, directory):
+    def __init__(self, paradigmPathway, scoreFile, phenotypeFile, subtractFile, dataFile, sampleList, filterParams, nNulls, directory):
         Target.__init__(self, time=10000)
+        self.paradigmPathway = paradigmPathway
+        self.scoreFile = scoreFile
+        self.phenotypeFile = phenotypeFile
+        self.subtractFile = subtractFile
+        self.dataFile = dataFile
+        self.sampleList = sampleList
         self.filterParams = filterParams
         self.nNulls = nNulls
         self.directory = directory
     def run(self):
         os.chdir(self.directory)
         
-        self.addChildTarget(jtData(self.directory))
-        for null in range(1, self.nNulls + 1):
-            self.addChildTarget(jtNData(null, self.directory))
-        self.setFollowOnTarget(runOCCAM(self.filterParams, self.nNulls, self.directory))
+        ## create real and null matricies from merge_merged.all.tab
+        if self.dataFile is not None:
+            self.addChildTarget(jtData(self.dataFile, self.sampleList, self.directory))
+            for null in range(1, self.nNulls + 1):
+                self.addChildTarget(jtNData(null, self.dataFile, self.sampleList, self.directory))
+        self.setFollowOnTarget(runOCCAM(self.paradigmPathway, self.scoreFile, self.phenotypeFile, self.subtractFile, self.dataFile, self.sampleList, self.filterParams, self.nNulls, self.directory))
         
 class runOCCAM(Target):
-    def __init__(self, filterParams, nNulls, directory):
+    def __init__(self, paradigmPathway, scoreFile, phenotypeFile, subtractFile, dataFile, sampleList, filterParams, nNulls, directory):
         Target.__init__(self, time=10000)
+        self.paradigmPathway = paradigmPathway
+        self.scoreFile = scoreFile
+        self.phenotypeFile = phenotypeFile
+        self.subtractFile = subtractFile
+        self.dataFile = dataFile
+        self.sampleList = sampleList
         self.filterParams = filterParams
         self.nNulls = nNulls
         self.directory = directory
     def run(self):
         os.chdir(self.directory)
         
-        if os.path.exists("subtract.tab"):
-            if not os.path.exists("OCCAM__feature__real"):
-                self.addChildTarget(jtCmd("%s real.tab %s subtract.tab" % (lmExec, featureFile), self.directory))
-            for null in range(1, self.nNulls + 1):
-                if not os.path.exists("OCCAM__feature__null_%s" % (null)):
-                    self.addChildTarget(jtCmd("%s null_%s.tab %s subtract.tab" % (lmExec, null, featureFile), self.directory))
+        ## run lm.R or OCCAM.py
+        if self.phenotypeFile is not None:
+            phenotypeName = re.split("/", self.phenotypeFile)[-1].rstrip(".tab")
         else:
-            if not os.path.exists("OCCAM__feature__real"):
-                self.addChildTarget(jtCmd("%s %s real.tab" % (occamExec, featureFile), self.directory))
+            phenotypeName = "feature"
+        if self.subtractFile is not None:
+            if not os.path.exists("OCCAM__%s__real" % (phenotypeName)):
+                self.addChildTarget(jtCmd("%s real.tab %s %s" % (lmExec, self.phenotypeFile, self.subtractFile), self.directory))
             for null in range(1, self.nNulls + 1):
-                if not os.path.exists("OCCAM__feature__null_%s" % (null)):
-                    self.addChildTarget(jtCmd("%s %s null_%s.tab" % (occamExec, featureFile, null), self.directory))
-        self.setFollowOnTarget(runPATHMARK(self.filterParams, self.nNulls, self.directory))
+                if not os.path.exists("OCCAM__%s__null_%s" % (phenotypeName, null)):
+                    self.addChildTarget(jtCmd("%s null_%s.tab %s %s" % (lmExec, null, self.phenotypeFile, self.subtractFile), self.directory))
+        elif self.phenotypeFile is not None:
+            if not os.path.exists("OCCAM__%s__real" % (phenotypeName)):
+                self.addChildTarget(jtCmd("%s %s real.tab" % (occamExec, self.phenotypeFile), self.directory))
+            for null in range(1, self.nNulls + 1):
+                if not os.path.exists("OCCAM__%s__null_%s" % (phenotypeName, null)):
+                    self.addChildTarget(jtCmd("%s %s null_%s.tab" % (occamExec, self.phenotypeFile, null), self.directory))
+        self.setFollowOnTarget(branchPATHMARK(self.paradigmPathway, self.scoreFile, self.phenotypeFile, self.dataFile, self.sampleList, self.filterParams, self.nNulls, self.directory))
 
-class runPATHMARK(Target):
-    def __init__(self, filterParams, nNulls, directory):
+class branchPATHMARK(Target):
+    def __init__(self, paradigmPathway, scoreFile, phenotypeFile, dataFile, sampleList, filterParams, nNulls, directory):
         Target.__init__(self, time=10000)
+        self.paradigmPathway = paradigmPathway
+        self.scoreFile = scoreFile
+        self.phenotypeFile = phenotypeFile
+        self.dataFile = dataFile
+        self.sampleList = sampleList
         self.filterParams = filterParams
         self.nNulls = nNulls
         self.directory = directory
@@ -169,36 +180,89 @@ class runPATHMARK(Target):
             system("mkdir %s" % (layoutDir))
         os.chdir(layoutDir)
         
-        if not os.path.exists(re.split("/", paradigmPathway)[-1]):
-            system("ln -s %s ." % (paradigmPathway))
-        if not os.path.exists("real_results.tab"):
-            system("ln ../OCCAM__feature__real/results.tab real_results.tab")
-        if self.nNulls > 0:
-            if not os.path.exists("null_results.tab"):
-                for null in range(1, self.nNulls + 1):
-                    if not os.path.exists("null_results.tmp"):
-                        system("cat ../OCCAM__feature__null_%s/results.tab | transpose.pl | head -n1 >> null_results.tmp" % (null))
-                    system("cat ../OCCAM__feature__null_%s/results.tab | transpose.pl | grep \"%s\" | sed 's/%s/N%s/' >> null_results.tmp" % (null, occamPhenotype, occamPhenotype, null))
-                system("cat null_results.tmp | transpose.pl > null_results.tab")
-                system("rm -f null_results.tmp")
+        ## link pathway
+        if not os.path.exists(re.split("/", self.paradigmPathway)[-1]):
+            if self.paradigmPathway.startswith("/"):
+                system("ln -s %s ." % (self.paradigmPathway))
+            else:
+                system("ln -s ../%s ." % (self.paradigmPathway))
         
-        system("%s -b %s -f %s -n real_results.tab >& a1" % (pathmarkExec, self.filterParams, occamPhenotype))
-        if self.nNulls > 0:
-            system("%s -b %s -s a1 -d NULL_%s null_results.tab" % (pathmarkExec, self.filterParams, occamPhenotype))
-            self.setFollowOnTarget(backgroundPATHMARK(self.nNulls, self.directory))
+        ## link real_results.all.tab
+        if self.phenotypeFile is not None:
+            phenotypeName = re.split("/", self.phenotypeFile)[-1].rstrip(".tab")
+        else:
+            phenotypeName = "feature"
+        if not os.path.exists("real_results.all.tab"):
+            if self.scoreFile is None:
+                system("ln ../OCCAM__%s__real/results.tab real_results.all.tab" % (phenotypeName))
+            else:
+                if self.scoreFile.startswith("/"):
+                    system("ln %s real_results.all.tab" % (self.scoreFile))
+                else:
+                    system("ln ../%s real_results.all.tab" % (self.scoreFile))
+        
+        ## iterate through occamPhenotypes
+        occamPhenotypes = retColumns("real_results.all.tab")
+        for occamPhenotype in occamPhenotypes:
+            self.addChildTarget(runPATHMARK(occamPhenotype, self.paradigmPathway, self.scoreFile, self.phenotypeFile, self.dataFile, self.sampleList, self.filterParams, self.nNulls, self.directory))
+        self.setFollowOnTarget(cleanup(self.directory))
 
-class backgroundPATHMARK(Target):
-    def __init__(self, nNulls, directory):
+class runPATHMARK(Target):
+    def __init__(self, occamPhenotype, paradigmPathway, scoreFile, phenotypeFile, dataFile, sampleList, filterParams, nNulls, directory):
         Target.__init__(self, time=10000)
+        self.occamPhenotype = occamPhenotype
+        self.paradigmPathway = paradigmPathway
+        self.scoreFile = scoreFile
+        self.phenotypeFile = phenotypeFile
+        self.dataFile = dataFile
+        self.sampleList = sampleList
+        self.filterParams = filterParams
         self.nNulls = nNulls
         self.directory = directory
     def run(self):
         layoutDir = "%s/LAYOUT" % (self.directory)
         os.chdir(layoutDir)
         
-        system("ls %s/*_nodrug.sif | %s > stats_%s.tab" % (occamPhenotype, statisticsExec, occamPhenotype))
-        system("ls NULL_%s/*_nodrug.sif | %s -c counts_NULL_%s.tab > stats_NULL_%s.tab" % (occamPhenotype, statisticsExec, occamPhenotype, occamPhenotype))
-        system("../background.R %s" % (occamPhenotype))
+        ## aggregate null scores
+        if self.phenotypeFile is not None:
+            phenotypeName = re.split("/", self.phenotypeFile)[-1].rstrip(".tab")
+        else:
+            phenotypeName = "feature"
+        if self.nNulls > 0:
+            if not os.path.exists("null_results.%s.tab" % (self.occamPhenotype)):
+                nullScores = {}
+                for null in range(1, self.nNulls + 1):
+                    nullScores["N%s" % (null)] = rCRSData("../OCCAM__%s__null_%s/results.tab" % (phenotypeName, null))[self.occamPhenotype]
+                wCRSData("null_results.%s.tmp" % (self.occamPhenotype), nullScores)
+        
+        ## run pathmark
+        system("%s -b %s -f %s -n real_results.all.tab >& %s.params" % (pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype))
+        if self.nNulls > 0:
+            system("%s -b %s -s %s.params -d NULL_%s null_results.%s.tab" % (pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype, self.occamPhenotype))
+            self.setFollowOnTarget(backgroundPATHMARK(self.occamPhenotype, self.nNulls, self.directory))
+
+class backgroundPATHMARK(Target):
+    def __init__(self, occamPhenotype, nNulls, directory):
+        Target.__init__(self, time=10000)
+        self.occamPhenotype = occamPhenotype
+        self.nNulls = nNulls
+        self.directory = directory
+    def run(self):
+        layoutDir = "%s/LAYOUT" % (self.directory)
+        os.chdir(layoutDir)
+        
+        system("ls %s/*_nodrug.sif | %s > stats_%s.tab" % (self.occamPhenotype, statisticsExec, self.occamPhenotype))
+        system("ls NULL_%s/*_nodrug.sif | %s -c counts_NULL_%s.tab > stats_NULL_%s.tab" % (self.occamPhenotype, statisticsExec, self.occamPhenotype, self.occamPhenotype))
+        system("../background.R %s" % (self.occamPhenotype))
+
+class cleanup(Target):
+    def __init__(self, directory):
+        Target.__init__(self, time=10000)
+        self.directory = directory
+    def run(self):
+        os.chdir(self.directory)
+        
+        system("rm -rf real* null* OCCAM__* background.R LAYOUT/*.params LAYOUT/real_results.* LAYOUT/null_results.*")
 
 def main():
     ## parse arguments
@@ -207,26 +271,49 @@ def main():
     parser.add_option("--jobFile", help="Add as a child of jobFile rather " +
                       "than making a new jobTree")
     parser.add_option("-b", "--boundaries", dest="boundParams", default="\"0.0;0.0\"")
-    parser.add_option("-n", "--nulls", dest="nNulls", default="0")
+    parser.add_option("-r", "--randoms", dest="nBackground", default="0")
     options, args = parser.parse_args()
     print "Using Batch System '" + options.batchSystem + "'"
-    
-    filterParams = options.boundParams
-    nNulls = int(options.nNulls)
     
     ## clean
     if len(args) == 1:
         if args[0] == "clean":
-            print "rm -rf null* real* LAYOUT OCCAM* .jobTree"
-            os.system("rm -rf null* real* LAYOUT OCCAM* .jobTree")
+            print "rm -rf real* null* OCCAM__* LAYOUT background.R .jobTree"
+            os.system("rm -rf real* null* OCCAM__* LAYOUT background.R .jobTree")
             sys.exit(0)
     
+    ## parse arguments
+    assert ((len(args) == 2) or (len(args) == 3))
+    if len(args) == 2:
+        paradigmPathway = args[0] 
+        scoreFile = args[1]
+        phenotypeFile = None
+        dataFile = None
+        sampleList = None
+        filterParams = options.boundParams
+        nNulls = 0
+        assert(os.path.exists(paradigmPathway))
+        assert(os.path.exists(scoreFile))
+    else:
+        paradigmPathway = args[0]
+        scoreFile = None
+        phenotypeFile = args[2]
+        dataFile = args[1]
+        sampleList = []
+        for sample in retColumns(dataFile):
+            if not sample.startswith("na_iter"):
+                sampleList.append(sample)
+        filterParams = options.boundParams
+        nNulls = int(options.nBackground)
+        assert(os.path.exists(paradigmPathway))
+        assert(os.path.exists(phenotypeFile))
+        assert(os.path.exists(dataFile))
+    
     ## run
-    assert len(args) == 0
     logger.info("options: " + str(options))
     logger.info("starting make")
     writeScripts()
-    s = Stack(prepareOCCAM(filterParams, nNulls, os.getcwd()))
+    s = Stack(prepareOCCAM(paradigmPathway, scoreFile, phenotypeFile, None, dataFile, sampleList, filterParams, nNulls, os.getcwd()))
     if options.jobFile:
         s.addToJobFile(options.jobFile)
     else:
