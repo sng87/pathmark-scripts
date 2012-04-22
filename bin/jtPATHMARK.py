@@ -271,7 +271,7 @@ class cleanup(Target):
 
 def main():
     ## parse arguments
-    parser = OptionParser()
+    parser = OptionParser(usage = "%prog [options] network IPL-matrix features")
     Stack.addJobTreeOptions(parser)
     parser.add_option("--jobFile", help="Add as a child of jobFile rather " +
                       "than making a new jobTree")

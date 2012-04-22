@@ -29,4 +29,4 @@ init.sh :
 	endif >> init.csh
 
 clean :
-	rm -f init.sh init.csh
+	rm -rf init.sh init.csh test/LAYOUT test/.jobTree test/.lastjobTree
