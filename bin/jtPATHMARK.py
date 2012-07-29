@@ -22,6 +22,7 @@ from jobTree.scriptTree.stack import Stack
 ## executables and directories
 lmExec = "lm.R"
 occamExec = "OCCAM.py"
+ttestExec = "tOCCAM.py"
 pathmarkExec = "PATHMARK.py"
 statisticsExec = "statistics-subnets.py"
 
@@ -147,8 +148,6 @@ class runOCCAM(Target):
         ## run lm.R or OCCAM.py
         if self.phenotypeFile is not None:
             phenotypeName = re.split("/", self.phenotypeFile)[-1].rstrip(".tab")
-        else:
-            phenotypeName = "feature"
         if self.subtractFile is not None:
             if not os.path.exists("OCCAM__%s__real" % (phenotypeName)):
                 self.addChildTarget(jtCmd("%s real.tab %s %s" % (lmExec, self.phenotypeFile, self.subtractFile), self.directory))
@@ -188,12 +187,9 @@ class branchPATHMARK(Target):
                 system("ln -s ../%s ." % (self.paradigmPathway))
         
         ## link real_results.all.tab
-        if self.phenotypeFile is not None:
-            phenotypeName = re.split("/", self.phenotypeFile)[-1].rstrip(".tab")
-        else:
-            phenotypeName = "feature"
         if not os.path.exists("real_results.all.tab"):
             if self.scoreFile is None:
+                phenotypeName = re.split("/", self.phenotypeFile)[-1].rstrip(".tab")
                 system("ln ../OCCAM__%s__real/results.tab real_results.all.tab" % (phenotypeName))
             else:
                 if self.scoreFile.startswith("/"):
@@ -226,11 +222,8 @@ class runPATHMARK(Target):
         os.chdir(layoutDir)
         
         ## aggregate null scores
-        if self.phenotypeFile is not None:
-            phenotypeName = re.split("/", self.phenotypeFile)[-1].rstrip(".tab")
-        else:
-            phenotypeName = "feature"
         if self.nNulls > 0:
+            phenotypeName = re.split("/", self.phenotypeFile)[-1].rstrip(".tab")
             if not os.path.exists("null_results.%s.tab" % (self.occamPhenotype)):
                 nullScores = {}
                 for null in range(1, self.nNulls + 1):
@@ -241,9 +234,9 @@ class runPATHMARK(Target):
                 wCRSData("null_results.%s.tab" % (self.occamPhenotype), nullScores)
         
         ## run pathmark
-        system("%s -b %s -f %s -n real_results.all.tab >& %s.params" % (pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype))
+        system("%s -b \"%s\" -f %s -n real_results.all.tab >& %s.params" % (pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype))
         if self.nNulls > 0:
-            system("%s -b %s -s %s.params -d NULL_%s null_results.%s.tab" % (pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype, self.occamPhenotype))
+            system("%s -b \"%s\" -s %s.params -d NULL_%s null_results.%s.tab" % (pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype, self.occamPhenotype))
             self.setFollowOnTarget(backgroundPATHMARK(self.occamPhenotype, self.nNulls, self.directory))
 
 class backgroundPATHMARK(Target):
@@ -275,7 +268,7 @@ def main():
     Stack.addJobTreeOptions(parser)
     parser.add_option("--jobFile", help="Add as a child of jobFile rather " +
                       "than making a new jobTree")
-    parser.add_option("-b", "--boundaries", dest="boundParams", default="\"0.0;0.0\"")
+    parser.add_option("-b", "--boundaries", dest="boundParams", default="0.0;0.0")
     parser.add_option("-r", "--randoms", dest="nBackground", default="0")
     options, args = parser.parse_args()
     print "Using Batch System '" + options.batchSystem + "'"

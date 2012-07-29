@@ -135,9 +135,7 @@ def PATHMARK(files, globalPathway, features = None, statLine = None,
             wrtDir = outDir
         if not os.path.exists(wrtDir):
             syscmd("mkdir %s" % (wrtDir))
-        (cpNodes, cpInteractions) = filterComplexesByGeneSupport(pNodes, pInteractions,
-                                        reverseInteractions(pInteractions), gNodes,
-                                        getComponentMap(gNodes, reverseInteractions(gInteractions)))
+        (cpNodes, cpInteractions) = cleanFilter(pNodes, pInteractions, gNodes, gInteractions)
         if outputPARADIGM:
             wPARADIGM("%s/%s_%s_nodrug_pathway.tab" % (wrtDir, feature, filterString), pNodes, pInteractions)
             if outputCleaned:

@@ -46,9 +46,9 @@ def retRows(inf, delim = "\t", index = 0, header = True):
         rows.append(re.split(delim, line)[index])
     return(rows)
 
-def rCRSData(inf, appendData = dict(), delim = "\t", retFeatures = False, debug = False):
+def rCRSData(inf, appendData = {}, delim = "\t", retFeatures = False, debug = False):
     """reads .tsv into a [col][row] dictionary"""
-    inData = dict()
+    inData = {}
     colFeatures = []
     rowFeatures = []
     ## copy appendData
@@ -413,6 +413,61 @@ def getComponentMap(pNodes, pInteractions):
             if rpInteractions[i][j] == "component>":
                 componentMap[i].append(j)
     return(componentMap)
+
+def cleanFilter(sNodes, sInteractions, gNodes, gInteractions):
+    oNodes = deepcopy(sNodes)
+    oInteractions = deepcopy(sInteractions)
+    roInteractions = reverseInteractions(oInteractions)
+    rgInteractions = reverseInteractions(gInteractions)
+    deleteCount = 1
+    deleteNodes = []
+    while (deleteCount > 0):
+        deleteCount = 0
+        deleteNodes = []
+        for source in oNodes.keys():
+            if oNodes[source] != "complex":
+                continue
+            oTotal = 0
+            gTotal = 0
+            if source in roInteractions:
+                for target in roInteractions[source].keys():
+                    if roInteractions[source][target] == "component>":
+                        oTotal += 1
+            if source in rgInteractions:
+                for target in rgInteractions[source].keys():
+                    if rgInteractions[source][target] == "component>":
+                        gTotal += 1
+            if float(oTotal)/float(gTotal) <= 0.5:
+                deleteCount += 1
+                deleteNodes.append(source)
+            
+        for source in oNodes.keys():
+            if oNodes[source] != "family":
+                continue
+            oTotal = 0
+            if source in roInteractions:
+                for target in roInteractions[source].keys():
+                    if roInteractions[source][target] == "member>":
+                        oTotal += 1
+            if oTotal < 2:
+                deleteCount += 1
+                deleteNodes.append(source)
+           
+        ## delete
+        while (len(deleteNodes) > 0):
+            node = deleteNodes.pop(0)
+            del oNodes[node]
+            for target in roInteractions[node].keys():
+                if len(oInteractions[target].keys()) == 1:
+                    if len(roInteractions[target].keys()) == 0:
+                        if target not in deleteNodes:
+                            deleteCount += 1
+                            deleteNodes.append(target)
+                    del oInteractions[target]
+                else:
+                    del oInteractions[target][node]
+            del roInteractions[node]
+    return(oNodes, oInteractions)
 
 def filterComplexesByGeneSupport(allNodes, forInteractions, revInteractions, typeMap, componentMap, threshold = 0.5):
     """remove complexes by percent support"""
