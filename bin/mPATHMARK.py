@@ -437,10 +437,13 @@ def cleanFilter(sNodes, sInteractions, gNodes, gInteractions):
                 for target in rgInteractions[source].keys():
                     if rgInteractions[source][target] == "component>":
                         gTotal += 1
-            if float(oTotal)/float(gTotal) <= 0.5:
-                deleteCount += 1
-                deleteNodes.append(source)
-            
+            try:
+                if float(oTotal)/float(gTotal) <= 0.5:
+                    deleteCount += 1
+                    deleteNodes.append(source)
+            except ZeroDivisionError:
+                pass
+                
         for source in oNodes.keys():
             if oNodes[source] != "family":
                 continue
