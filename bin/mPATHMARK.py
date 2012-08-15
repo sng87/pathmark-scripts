@@ -459,17 +459,24 @@ def cleanFilter(sNodes, sInteractions, gNodes, gInteractions):
         ## delete
         while (len(deleteNodes) > 0):
             node = deleteNodes.pop(0)
+            ## remove node definition
             del oNodes[node]
-            for target in roInteractions[node].keys():
-                if len(oInteractions[target].keys()) == 1:
-                    if len(roInteractions[target].keys()) == 0:
-                        if target not in deleteNodes:
-                            deleteCount += 1
-                            deleteNodes.append(target)
-                    del oInteractions[target]
-                else:
-                    del oInteractions[target][node]
-            del roInteractions[node]
+            ## remove links from node
+            if node in oInteractions:
+                del oInteractions[node]
+            ## remove links pointing to node
+            if node in roInteractions:
+                for target in roInteractions[node].keys():
+                    if target in oInteractions:
+                        if len(oInteractions[target].keys()) == 1:
+                            if target not in roInteractions:
+                                if target not in deleteNodes:
+                                    deleteCount += 1
+                                    deleteNodes.append(target) 
+                            del oInteractions[target]
+                        else:
+                            del oInteractions[target][node]
+            roInteractions = reverseInteractions(oInteractions)
     return(oNodes, oInteractions)
 
 def filterComplexesByGeneSupport(allNodes, forInteractions, revInteractions, typeMap, componentMap, threshold = 0.5):
