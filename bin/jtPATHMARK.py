@@ -19,12 +19,13 @@ from jobTree.src.bioio import system
 from jobTree.scriptTree.target import Target
 from jobTree.scriptTree.stack import Stack
 
-## executables and directories
-lmExec = "lm.R"
-occamExec = "OCCAM.py"
-ttestExec = "tOCCAM.py"
-pathmarkExec = "PATHMARK.py"
-statisticsExec = "statistics-subnets.py"
+basedir = os.path.dirname(os.path.abspath(__file__))
+
+lmExec = os.path.join(basedir, "lm.R")
+occamExec = os.path.join(basedir, "OCCAM.py")
+ttestExec = os.path.join(basedir, "tOCCAM.py")
+pathmarkExec = os.path.join(basedir, "PATHMARK.py")
+statisticsExec = os.path.join(basedir, "statistics-subnets.py")
 
 def writeScripts():
     """creates the R scripts necessary for plotting"""
@@ -156,10 +157,10 @@ class runOCCAM(Target):
                     self.addChildTarget(jtCmd("%s null_%s.tab %s %s" % (lmExec, null, self.phenotypeFile, self.subtractFile), self.directory))
         elif self.phenotypeFile is not None:
             if not os.path.exists("OCCAM__%s__real" % (phenotypeName)):
-                self.addChildTarget(jtCmd("%s %s real.tab" % (occamExec, self.phenotypeFile), self.directory))
+                self.addChildTarget(jtCmd("%s %s %s real.tab" % (sys.executable, occamExec, self.phenotypeFile), self.directory))
             for null in range(1, self.nNulls + 1):
                 if not os.path.exists("OCCAM__%s__null_%s" % (phenotypeName, null)):
-                    self.addChildTarget(jtCmd("%s %s null_%s.tab" % (occamExec, self.phenotypeFile, null), self.directory))
+                    self.addChildTarget(jtCmd("%s %s %s null_%s.tab" % (sys.executable, occamExec, self.phenotypeFile, null), self.directory))
         self.setFollowOnTarget(branchPATHMARK(self.paradigmPathway, self.scoreFile, self.phenotypeFile, self.dataFile, self.sampleList, self.filterParams, self.nNulls, self.directory))
 
 class branchPATHMARK(Target):
@@ -234,9 +235,9 @@ class runPATHMARK(Target):
                 wCRSData("null_results.%s.tab" % (self.occamPhenotype), nullScores)
         
         ## run pathmark
-        system("%s -b \"%s\" -f %s -n real_results.all.tab >& %s.params" % (pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype))
+        system("%s %s -b \"%s\" -f %s -n real_results.all.tab >& %s.params" % (sys.executable, pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype))
         if self.nNulls > 0:
-            system("%s -b \"%s\" -s %s.params -d NULL_%s null_results.%s.tab" % (pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype, self.occamPhenotype))
+            system("%s %s -b \"%s\" -s %s.params -d NULL_%s null_results.%s.tab" % (sys.executable, pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype, self.occamPhenotype))
             self.setFollowOnTarget(backgroundPATHMARK(self.occamPhenotype, self.nNulls, self.directory))
 
 class backgroundPATHMARK(Target):
@@ -249,8 +250,8 @@ class backgroundPATHMARK(Target):
         layoutDir = "%s/LAYOUT" % (self.directory)
         os.chdir(layoutDir)
         
-        system("ls %s/*_nodrug.sif | %s > stats_%s.tab" % (self.occamPhenotype, statisticsExec, self.occamPhenotype))
-        system("ls NULL_%s/*_nodrug.sif | %s -c counts_NULL_%s.tab > stats_NULL_%s.tab" % (self.occamPhenotype, statisticsExec, self.occamPhenotype, self.occamPhenotype))
+        system("ls %s/*_nodrug.sif | %s %s > stats_%s.tab" % (self.occamPhenotype, sys.executable, statisticsExec, self.occamPhenotype))
+        system("ls NULL_%s/*_nodrug.sif | %s %s -c counts_NULL_%s.tab > stats_NULL_%s.tab" % (self.occamPhenotype, sys.executable, statisticsExec, self.occamPhenotype, self.occamPhenotype))
         system("../background.R %s" % (self.occamPhenotype))
 
 class cleanup(Target):
@@ -277,7 +278,7 @@ def main():
     if len(args) == 1:
         if args[0] == "clean":
             print "rm -rf real* null* OCCAM__* LAYOUT background.R .jobTree"
-            os.system("rm -rf real* null* OCCAM__* LAYOUT background.R .jobTree")
+            system("rm -rf real* null* OCCAM__* LAYOUT background.R .jobTree")
             sys.exit(0)
     
     ## parse arguments
