@@ -1,0 +1,20 @@
+<tool id="pathmark" name="Pathmark" version="1.0.0">
+  <description>Pathmark</description>
+  <command interpreter="python">remusPATHMARK.py --ipl $ipl --phenotype $phenotype --background $background
+#if str($pathway) != 'None':
+  --pathway $pathway
+#end if
+--score $score
+  </command>
+  <inputs>
+	  <param name="ipl" type="data" format="ipl" label="PARADIGM IPL Matrix File"/>
+	  <param name="phenotype" type="data" format="matrix" label="Clinical Phenotype File"/>
+	  <param name="background" type="integer" value="0" label="Null Batches for Background Distribution"/>
+	  <param name="filter" type="text" value="0.0;0.0" label="Filtering Parameters"/>
+	  <param name="pathway" type="data" format="zip" label="Pathways Zip File" optional="true"/>
+  </inputs>
+  <outputs>
+      <data name="score" format="matrix"/>
+  </outputs>
+  <parallelism method="remus_cmd"/>
+</tool>
