@@ -124,10 +124,6 @@ def PATHMARK(files, globalPathway, features = None, statLine = None,
                 pInteractions[sortedTop[i]] = {}
                 pInteractions[sortedTop[i]]["__DISCONNECTED__"] = "-disconnected-"
         
-        ## output node attributes
-        if outputAttributes:
-            wNodeAttributes(feature, gNodes, uData[0])
-        
         ## output networks
         if outDir == None:
             wrtDir = feature
@@ -144,6 +140,8 @@ def PATHMARK(files, globalPathway, features = None, statLine = None,
             wSIF("%s/%s_%s_nodrug.sif" % (wrtDir, feature, filterString), pInteractions)
             if outputCleaned:
                 wSIF("%s/%s_%s_nodrug_cleaned.sif" % (wrtDir, feature, filterString), cpInteractions)
+        if outputAttributes:
+            wNodeAttributes(feature, gNodes, uData[0], wrtDir)
 
 if __name__ == "__main__":
     ## parse arguments
@@ -181,9 +179,7 @@ if __name__ == "__main__":
             filterBounds = [float(v1), float(v2)]
             filterBounds.sort()
         elif o == "-d":
-            outDir = a
-            if outDir.endswith("/"):
-                outDir = outDir.rstrip("/")
+            outDir = a.rstrip("/")
         elif o == "-n":
             outputAttributes = True
         elif o == "-t":

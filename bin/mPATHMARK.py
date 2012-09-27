@@ -619,23 +619,21 @@ def removeNode(node, pNodes, pInteractions):
                 del rpInteractions[node]
     return(pNodes, pInteractions)
 
-def wNodeAttributes(feature, gNodes, scoreData):
-    if not os.path.exists("TYPE.NA"):
-        typef = open("TYPE.NA", "w")
-        typef.write("TYPE (class=java.lang.String)\n")
-        for node in gNodes.keys():
-            typef.write("%s = %s\n" % (node, gNodes[node]))
-        typef.close()
-    if not os.path.exists("LABEL.NA"):
-        labelf = open("LABEL.NA", "w")
-        labelf.write("LABEL (class=java.lang.String)\n")
-        for node in gNodes.keys():
-            if gNodes[node] == "protein":
-                labelf.write("%s = %s\n" % (node, node))
-            else:
-                labelf.write("%s = %s\n" % (node, ""))
-        labelf.close()
-    scoref = open(feature+"_SCORE.NA", "w")
+def wNodeAttributes(feature, gNodes, scoreData, directory):
+    typef = open("%s/TYPE.NA" % (directory), "w")
+    typef.write("TYPE (class=java.lang.String)\n")
+    for node in gNodes.keys():
+        typef.write("%s = %s\n" % (node, gNodes[node]))
+    typef.close()
+    labelf = open("%s/LABEL.NA" % (directory), "w")
+    labelf.write("LABEL (class=java.lang.String)\n")
+    for node in gNodes.keys():
+        if gNodes[node] == "protein":
+            labelf.write("%s = %s\n" % (node, node))
+        else:
+            labelf.write("%s = %s\n" % (node, ""))
+    labelf.close()
+    scoref = open("%s/SCORE.NA" % (directory), "w")
     scoref.write("SCORE (class=java.lang.Float)\n")
     for node in gNodes.keys():
         if node in scoreData[feature]:
