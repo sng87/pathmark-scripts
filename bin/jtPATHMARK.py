@@ -150,18 +150,18 @@ class runOCCAM(Target):
         
         ## run lm.R or OCCAM.py
         if self.phenotypeFile is not None:
-            phenotypeName = re.split("/", self.phenotypeFile)[-1].rstrip(".tab")
+            phenotypeName = re.split("/", self.phenotypeFile)[-1]
         if self.subtractFile is not None:
-            if not os.path.exists("OCCAM__%s__real" % (phenotypeName)):
+            if not os.path.exists("OCCAM__%s__real.tab" % (phenotypeName)):
                 self.addChildTarget(jtCmd("%s real.tab %s %s" % (lmExec, self.phenotypeFile, self.subtractFile), self.directory))
             for null in range(1, self.nNulls + 1):
-                if not os.path.exists("OCCAM__%s__null_%s" % (phenotypeName, null)):
+                if not os.path.exists("OCCAM__%s__null_%s.tab" % (phenotypeName, null)):
                     self.addChildTarget(jtCmd("%s null_%s.tab %s %s" % (lmExec, null, self.phenotypeFile, self.subtractFile), self.directory))
         elif self.phenotypeFile is not None:
-            if not os.path.exists("OCCAM__%s__real" % (phenotypeName)):
+            if not os.path.exists("OCCAM__%s__real.tab" % (phenotypeName)):
                 self.addChildTarget(jtCmd("%s %s %s real.tab" % (sys.executable, occamExec, self.phenotypeFile), self.directory))
             for null in range(1, self.nNulls + 1):
-                if not os.path.exists("OCCAM__%s__null_%s" % (phenotypeName, null)):
+                if not os.path.exists("OCCAM__%s__null_%s.tab" % (phenotypeName, null)):
                     self.addChildTarget(jtCmd("%s %s %s null_%s.tab" % (sys.executable, occamExec, self.phenotypeFile, null), self.directory))
         self.setFollowOnTarget(branchPATHMARK(self.paradigmPathway, self.scoreFile, self.phenotypeFile, self.dataFile, self.sampleList, self.filterParams, self.nNulls, self.directory))
 
