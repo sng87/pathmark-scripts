@@ -21,6 +21,8 @@ from jobTree.scriptTree.stack import Stack
 
 basedir = os.path.dirname(os.path.abspath(__file__))
 
+basepathway = os.path.join(basedir, "p_global_five3_v2.zip")
+
 lmExec = os.path.join(basedir, "lm.R")
 occamExec = os.path.join(basedir, "OCCAM.py")
 ttestExec = os.path.join(basedir, "tOCCAM.py")
@@ -269,8 +271,13 @@ def main():
     Stack.addJobTreeOptions(parser)
     parser.add_option("--jobFile", help="Add as a child of jobFile rather " +
                       "than making a new jobTree")
-    parser.add_option("-b", "--boundaries", dest="boundParams", default="0.0;0.0")
-    parser.add_option("-r", "--randoms", dest="nBackground", default="0")
+    parser.add_option("-w", "--workdir", dest="workdir", help="Common Work directory", default="./")
+    parser.add_option("-i", "--ipl", dest="iplFile", default = None)
+    parser.add_option("-p", "--pathway", dest="pathwayZip", default=None)
+    parser.add_option("-c", "--phenotype", dest="phenotypeFile", default=None)
+    parser.add_option("-s", "--score", dest="scoreFile", default=None)
+    parser.add_option("-f", "--filter", dest="filterParams", default="0.0;0.0")
+    parser.add_option("-b", "--background", dest="nBackground", default="0")
     options, args = parser.parse_args()
     print "Using Batch System '" + options.batchSystem + "'"
     
@@ -282,18 +289,39 @@ def main():
             sys.exit(0)
     
     ## parse arguments
-    assert ((len(args) == 2) or (len(args) == 3))
-    if len(args) == 2:
+    assert ((len(args) == 0) or (len(args) == 2) or (len(args) == 3))
+    if len(args) == 0:
+        paradigmZip = options.pathwayZip if options.pathwayZip is not None else basepathway
+        pathwayLib = os.path.join(workdir, "pathway")
+        system("unzip %s -d %s" % (pathwayZip, pathwayLib))
+        paradigmPathway = None
+        for file in os.listdir(pathwayLib):
+            if file.endswith("_pathway.tab"):
+                paradigmPathway = "%s/%s" % (pathwayLib, file)
+                break
+        scoreFile = None
+        phenotypeFile = options.phenotypeFile
+        dataFile = options.iplFile
+        sampleList = []
+        for sample in retColumns(dataFile):
+            if not sample.startswith("na_iter"):
+                sampleList.append(sample)
+        filterParams = options.filterParams
+        nNulls = int(options.nBackground)
+        assert(os.path.exists(paradigmPathway))
+        assert(os.path.exists(phenotypeFile))
+        assert(os.path.exists(dataFile))
+    elif len(args) == 2:
         paradigmPathway = args[0] 
         scoreFile = args[1]
         phenotypeFile = None
         dataFile = None
         sampleList = None
-        filterParams = options.boundParams
+        filterParams = options.filterParams
         nNulls = 0
         assert(os.path.exists(paradigmPathway))
         assert(os.path.exists(scoreFile))
-    else:
+    elif len(args) == 3:
         paradigmPathway = args[0]
         scoreFile = None
         phenotypeFile = args[2]
@@ -302,7 +330,7 @@ def main():
         for sample in retColumns(dataFile):
             if not sample.startswith("na_iter"):
                 sampleList.append(sample)
-        filterParams = options.boundParams
+        filterParams = options.filterParams
         nNulls = int(options.nBackground)
         assert(os.path.exists(paradigmPathway))
         assert(os.path.exists(phenotypeFile))
