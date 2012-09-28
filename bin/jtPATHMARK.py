@@ -193,7 +193,7 @@ class branchPATHMARK(Target):
         if not os.path.exists("real_results.all.tab"):
             if self.scoreFile is None:
                 phenotypeName = re.split("/", self.phenotypeFile)[-1]
-                system("ln ../OCCAM__%s__real/results.tab real_results.all.tab" % (phenotypeName))
+                system("ln ../OCCAM__%s__real.tab/results.tab real_results.all.tab" % (phenotypeName))
             else:
                 if self.scoreFile.startswith("/"):
                     system("ln %s real_results.all.tab" % (self.scoreFile))
@@ -230,10 +230,10 @@ class runPATHMARK(Target):
             if not os.path.exists("null_results.%s.tab" % (self.occamPhenotype)):
                 nullScores = {}
                 for null in range(1, self.nNulls + 1):
-                    if len(retColumns("../OCCAM__%s__null_%s/results.tab" % (phenotypeName, null))) == 0:
+                    if len(retColumns("../OCCAM__%s__null_%s.tab/results.tab" % (phenotypeName, null))) == 0:
                         ## this is an error right now
                         continue
-                    nullScores["N%s" % (null)] = rCRSData("../OCCAM__%s__null_%s/results.tab" % (phenotypeName, null))[self.occamPhenotype]
+                    nullScores["N%s" % (null)] = rCRSData("../OCCAM__%s__null_%s.tab/results.tab" % (phenotypeName, null))[self.occamPhenotype]
                 wCRSData("null_results.%s.tab" % (self.occamPhenotype), nullScores)
         
         ## run pathmark
