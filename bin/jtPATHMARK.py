@@ -292,7 +292,7 @@ def main():
     assert ((len(args) == 0) or (len(args) == 2) or (len(args) == 3))
     if len(args) == 0:
         paradigmZip = options.pathwayZip if options.pathwayZip is not None else basepathway
-        pathwayLib = os.path.join(workdir, "pathway")
+        pathwayLib = os.path.join(options.workdir, "pathway")
         system("unzip %s -d %s" % (pathwayZip, pathwayLib))
         paradigmPathway = None
         for file in os.listdir(pathwayLib):
