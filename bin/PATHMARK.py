@@ -10,6 +10,7 @@ Options:
   -s  flt;flt[,flt;flt,...]   force mean and standard deviation statistics for score files
   -b  flt;flt                 filter lower and upper boundary parameters (default: 0;0)
   -d  str                     output to user-specified directory (default: feature/)
+  -l  str                     log file
   -n                          output node attributes for cytoscape
   -t                          output paradigm net
   -q                          run quietly
@@ -23,13 +24,20 @@ from copy import deepcopy
 verbose = True
 outputCleaned = False
 
+logFile = None
+
 def usage(code = 0):
     print __doc__
     if code != None: sys.exit(code)
 
-def log(msg, die = False):
+def log(msg, file = None, die = False):
     if (verbose):
-        sys.stderr.write(msg)
+        if file is None:
+            sys.stderr.write(msg)
+        else:
+            l = open(file, "a")
+            l.write(msg)
+            l.close()
     if (die):
         sys.exit(1)
 
@@ -82,10 +90,10 @@ def PATHMARK(files, globalPathway, features = None, statLine = None,
                 pStats.append((float(v1), float(v2)))
         
         ## log statistics
-        log("%s\t%s;%s" % (feature, pStats[0][0], pStats[0][1]))
+        log("%s\t%s;%s" % (feature, pStats[0][0], pStats[0][1]), file = logFile)
         for i in range(1, len(pStats)):
-            log(",%s;%s" % (pStats[i][0], pStats[i][1]))
-        log("\n")
+            log(",%s;%s" % (pStats[i][0], pStats[i][1]), file = logFile)
+        log("\n", file = logFile)
         
         ## add top scoring links
         for source in gInteractions.keys():
@@ -146,7 +154,7 @@ def PATHMARK(files, globalPathway, features = None, statLine = None,
 if __name__ == "__main__":
     ## parse arguments
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "p:f:s:b:d:ntq")
+        opts, args = getopt.getopt(sys.argv[1:], "p:f:s:b:d:l:ntq")
     except getopt.GetoptError, err:
         print str(err)
         usage(2)
@@ -180,6 +188,8 @@ if __name__ == "__main__":
             filterBounds.sort()
         elif o == "-d":
             outDir = a.rstrip("/")
+        elif o == "-l":
+            logFile = a
         elif o == "-n":
             outputAttributes = True
         elif o == "-t":

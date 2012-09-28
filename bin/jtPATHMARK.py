@@ -237,7 +237,7 @@ class runPATHMARK(Target):
                 wCRSData("null_results.%s.tab" % (self.occamPhenotype), nullScores)
         
         ## run pathmark
-        system("%s %s -b \"%s\" -f %s -n real_results.all.tab >& %s.params" % (sys.executable, pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype))
+        system("%s %s -l %s.params -b \"%s\" -f %s -n real_results.all.tab" % (sys.executable, pathmarkExec, self.occamPhenotype, self.filterParams, self.occamPhenotype))
         if self.nNulls > 0:
             system("%s %s -b \"%s\" -s %s.params -d NULL_%s null_results.%s.tab" % (sys.executable, pathmarkExec, self.filterParams, self.occamPhenotype, self.occamPhenotype, self.occamPhenotype))
             self.setFollowOnTarget(backgroundPATHMARK(self.occamPhenotype, self.nNulls, self.directory))
