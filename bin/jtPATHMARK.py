@@ -192,7 +192,7 @@ class branchPATHMARK(Target):
         ## link real_results.all.tab
         if not os.path.exists("real_results.all.tab"):
             if self.scoreFile is None:
-                phenotypeName = re.split("/", self.phenotypeFile)[-1].rstrip(".tab")
+                phenotypeName = re.split("/", self.phenotypeFile)[-1]
                 system("ln ../OCCAM__%s__real/results.tab real_results.all.tab" % (phenotypeName))
             else:
                 if self.scoreFile.startswith("/"):
@@ -226,7 +226,7 @@ class runPATHMARK(Target):
         
         ## aggregate null scores
         if self.nNulls > 0:
-            phenotypeName = re.split("/", self.phenotypeFile)[-1].rstrip(".tab")
+            phenotypeName = re.split("/", self.phenotypeFile)[-1]
             if not os.path.exists("null_results.%s.tab" % (self.occamPhenotype)):
                 nullScores = {}
                 for null in range(1, self.nNulls + 1):

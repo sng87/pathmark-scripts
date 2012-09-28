@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-#import pdb
 import math
 import os
 import os.path
@@ -69,6 +68,8 @@ class DichotomizedPhenotypes:
              s = s.replace('/', "+")
              s = s.replace('"', "")
              s = s.replace(" ", "_")
+             s = s.replace("[", "_")
+             s = s.replace("]", "_")
              s = s.replace("(", "_")
              s = s.replace(")", "_")
              s = s.replace("<", "_")
@@ -134,7 +135,6 @@ class DichotomizedPhenotypes:
                             n.append("-")
                             neg = neg + 1
                         else:
-                            #pdb.set_trace()
                             pass
                     else:
                         n.append("")
@@ -332,10 +332,11 @@ def runSam(key, dir):
     print >>para, "para create",dir
     samCmd = dir+"/sam.cmd"
     samCmdFile = open(samCmd,"w")
-    samCmdFile.write("#!/bin/csh -fe\n")
+    samCmdFile.write("#!/bin/sh\n")
     samCmdFile.write("cd " + dir + "\n")
-    samCmdFile.write(TOOLS + "/R_shell/sam.R --ac 1 -i sam.input >& sam.output\n")
-    samCmdFile.write("cat sam.output | grep '.*\t.*\t.*\t.*\t' | sed -e 1d | sort >& sam.results\n")
+    samCmdFile.write("export R_LIBS=/projects/sysbio/apps/x86_64/Rlib\n")
+    samCmdFile.write(TOOLS + "/R_shell/sam.R --ac 1 -i sam.input 1> sam.output 2> sam.error \n")
+    samCmdFile.write("cat sam.output | grep '.*\t.*\t.*\t.*\t' | sed -e 1d | sort > sam.results\n")
     samCmdFile.close()
     os.chmod(samCmd, 0755);
     p = subprocess.Popen(samCmd, shell=True)
@@ -349,8 +350,8 @@ para = None
 log = None
 
 def lop(s):
-    if s[-4] == ".":
-            return s[:-4]
+    #if s[-4] == ".":
+    #        return s[:-4]
     return s
 
 def main(argv):
@@ -362,7 +363,7 @@ def main(argv):
         die("insufficient arguments")
     
     #try:
-    subprocess.check_call("which R", shell=True)
+    # subprocess.check_call("which R", shell=True)
     #except Exception, e:
     #    die("Unable to find R")
     
@@ -378,7 +379,8 @@ def main(argv):
     
 
     output = os.getcwd() + "/OCCAM" + "__" + lop(os.path.basename(phenotypeFile)) + "__" + lop(os.path.basename(featuresFile))
-    return run_occam(phenotypeFile, featuresFile, output, outfile=outfile, runNulls=runNulls)
+    run_occam(phenotypeFile, featuresFile, output, outfile=outfile, runNulls=runNulls)
+    sys.exit(0)
     
 def run_occam(phenotypeFile, featuresFile, output, outfile=None, runNulls=False):
     random.seed(3.14159)  # first things first. ensure repeatability
@@ -389,7 +391,7 @@ def run_occam(phenotypeFile, featuresFile, output, outfile=None, runNulls=False)
     if not os.path.exists(directory):
         os.mkdir(directory)
     para = open( directory + "/parasol.joblist","w")
-    log = open( directory + "/report.log","w")
+    sys.stderr = log = open( directory + "/report.log","w")
     # log = sys.stderr
 
     hypotheses = directory + "/hypotheses"
@@ -481,8 +483,11 @@ class Table:
         for column_i in  xrange(1, len(this.lines[0])):
             t = this.lines[0][column_i]
             n = t.find(" ")  # HACK to remove the column header annotations
-            if n > 0:
-                    t = t[:n]
+            if n > 0: t = t[:n]
+
+	    if t.startswith("TCGA-") and len(t) == 16:
+		t = t[0:12]
+
             columnLabels.append(t)
             this._columnMap[t] = column_i
         this._columnLabels = columnLabels
@@ -590,7 +595,7 @@ class PhenotypeTable:
 
       for i in xrange(k):
           phenotypeName = names[i]
-          sys.stdout.write( "   " + str(i)+" of " + str(k)+ " " + phenotypeName+"\r")
+          # sys.stdout.write( "   " + str(i)+" of " + str(k)+ " " + phenotypeName+"\r")
 
           dir = workingDir + "/"+ phenotypeName 
           if not os.path.exists(dir):
@@ -715,7 +720,7 @@ class Harvester:
                    if value == "NA":
                        this.NA.add(feature)
                    elif float(value) > 20:
-                       pdb.set_trace()
+		   	pass
                    else:
                        column[feature] = value
             if lineNumber < 10 or len(column.keys()) < 10:
