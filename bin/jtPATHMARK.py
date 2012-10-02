@@ -269,7 +269,8 @@ class cleanup(Target):
         
         system("rm -rf real* null* OCCAM__* background.R LAYOUT/*.params LAYOUT/real_results.* LAYOUT/null_results.* LAYOUT/*.tab LAYOUT/NULL_*")
         if self.outputZip is not None:
-            system("zip -r %s LAYOUT" % (self.outputZip))
+            system("zip -r LAYOUT.zip LAYOUT")
+            system("mv -f LAYOUT.zip %s" % (self.outputZip))
 
 def main():
     ## parse arguments
