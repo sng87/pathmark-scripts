@@ -112,7 +112,7 @@ class jtCmd(Target):
         system(self.cmd)
 
 class prepareOCCAM(Target):
-    def __init__(self, paradigmPathway, scoreFile, phenotypeFile, subtractFile, dataFile, sampleList, filterParams, nNulls, directory):
+    def __init__(self, paradigmPathway, scoreFile, phenotypeFile, subtractFile, dataFile, sampleList, filterParams, nNulls, outputZip, directory):
         Target.__init__(self, time=10000)
         self.paradigmPathway = paradigmPathway
         self.scoreFile = scoreFile
@@ -122,6 +122,7 @@ class prepareOCCAM(Target):
         self.sampleList = sampleList
         self.filterParams = filterParams
         self.nNulls = nNulls
+        self.outputZip = outputZip
         self.directory = directory
     def run(self):
         os.chdir(self.directory)
@@ -131,10 +132,10 @@ class prepareOCCAM(Target):
             self.addChildTarget(jtData(self.dataFile, self.sampleList, self.directory))
             for null in range(1, self.nNulls + 1):
                 self.addChildTarget(jtNData(null, self.dataFile, self.sampleList, self.directory))
-        self.setFollowOnTarget(runOCCAM(self.paradigmPathway, self.scoreFile, self.phenotypeFile, self.subtractFile, self.dataFile, self.sampleList, self.filterParams, self.nNulls, self.directory))
+        self.setFollowOnTarget(runOCCAM(self.paradigmPathway, self.scoreFile, self.phenotypeFile, self.subtractFile, self.dataFile, self.sampleList, self.filterParams, self.nNulls, self.outputZip, self.directory))
         
 class runOCCAM(Target):
-    def __init__(self, paradigmPathway, scoreFile, phenotypeFile, subtractFile, dataFile, sampleList, filterParams, nNulls, directory):
+    def __init__(self, paradigmPathway, scoreFile, phenotypeFile, subtractFile, dataFile, sampleList, filterParams, nNulls, outputZip, directory):
         Target.__init__(self, time=10000)
         self.paradigmPathway = paradigmPathway
         self.scoreFile = scoreFile
@@ -144,6 +145,7 @@ class runOCCAM(Target):
         self.sampleList = sampleList
         self.filterParams = filterParams
         self.nNulls = nNulls
+        self.outputZip = outputZip
         self.directory = directory
     def run(self):
         os.chdir(self.directory)
@@ -163,10 +165,10 @@ class runOCCAM(Target):
             for null in range(1, self.nNulls + 1):
                 if not os.path.exists("OCCAM__%s__null_%s.tab" % (phenotypeName, null)):
                     self.addChildTarget(jtCmd("%s %s %s null_%s.tab" % (sys.executable, occamExec, self.phenotypeFile, null), self.directory))
-        self.setFollowOnTarget(branchPATHMARK(self.paradigmPathway, self.scoreFile, self.phenotypeFile, self.dataFile, self.sampleList, self.filterParams, self.nNulls, self.directory))
+        self.setFollowOnTarget(branchPATHMARK(self.paradigmPathway, self.scoreFile, self.phenotypeFile, self.dataFile, self.sampleList, self.filterParams, self.nNulls, self.outputZip, self.directory))
 
 class branchPATHMARK(Target):
-    def __init__(self, paradigmPathway, scoreFile, phenotypeFile, dataFile, sampleList, filterParams, nNulls, directory):
+    def __init__(self, paradigmPathway, scoreFile, phenotypeFile, dataFile, sampleList, filterParams, nNulls, outputZip, directory):
         Target.__init__(self, time=10000)
         self.paradigmPathway = paradigmPathway
         self.scoreFile = scoreFile
@@ -175,6 +177,7 @@ class branchPATHMARK(Target):
         self.sampleList = sampleList
         self.filterParams = filterParams
         self.nNulls = nNulls
+        self.outputZip = outputZip
         self.directory = directory
     def run(self):
         layoutDir = "%s/LAYOUT" % (self.directory)
@@ -206,7 +209,7 @@ class branchPATHMARK(Target):
         occamPhenotypes = retColumns("real_results.all.tab")
         for occamPhenotype in occamPhenotypes:
             self.addChildTarget(runPATHMARK(occamPhenotype, self.paradigmPathway, self.scoreFile, self.phenotypeFile, self.dataFile, self.sampleList, self.filterParams, self.nNulls, self.directory))
-        self.setFollowOnTarget(cleanup(self.directory))
+        self.setFollowOnTarget(cleanup(self.outputZip, self.directory))
 
 class runPATHMARK(Target):
     def __init__(self, occamPhenotype, paradigmPathway, scoreFile, phenotypeFile, dataFile, sampleList, filterParams, nNulls, directory):
@@ -257,13 +260,16 @@ class backgroundPATHMARK(Target):
         system("../background.R %s" % (self.occamPhenotype))
 
 class cleanup(Target):
-    def __init__(self, directory):
+    def __init__(self, outputZip, directory):
         Target.__init__(self, time=10000)
+        self.outputZip = outputZip
         self.directory = directory
     def run(self):
         os.chdir(self.directory)
         
-        system("rm -rf real* null* OCCAM__* background.R LAYOUT/*.params LAYOUT/real_results.* LAYOUT/null_results.*")
+        system("rm -rf real* null* OCCAM__* background.R LAYOUT/*.params LAYOUT/real_results.* LAYOUT/null_results.* LAYOUT/*.tab LAYOUT/NULL_*")
+        if self.outputZip is not None:
+            system("zip -r %s LAYOUT" % (self.outputZip))
 
 def main():
     ## parse arguments
@@ -275,6 +281,7 @@ def main():
     parser.add_option("-i", "--ipl", dest="iplFile", default = None)
     parser.add_option("-p", "--pathway", dest="pathwayZip", default=None)
     parser.add_option("-c", "--phenotype", dest="phenotypeFile", default=None)
+    parser.add_option("-o", "--oz", dest="outputZip", default=None)
     parser.add_option("-s", "--score", dest="scoreFile", default=None)
     parser.add_option("-f", "--filter", dest="filterParams", default="0.0;0.0")
     parser.add_option("-b", "--background", dest="nBackground", default="0")
@@ -308,6 +315,7 @@ def main():
                 sampleList.append(sample)
         filterParams = options.filterParams
         nNulls = int(options.nBackground)
+        outputZip = options.outputZip
         assert(os.path.exists(paradigmPathway))
         assert(os.path.exists(phenotypeFile))
         assert(os.path.exists(dataFile))
@@ -319,6 +327,7 @@ def main():
         sampleList = None
         filterParams = options.filterParams
         nNulls = 0
+        outputZip = options.outputZip
         assert(os.path.exists(paradigmPathway))
         assert(os.path.exists(scoreFile))
     elif len(args) == 3:
@@ -332,6 +341,7 @@ def main():
                 sampleList.append(sample)
         filterParams = options.filterParams
         nNulls = int(options.nBackground)
+        outputZip = options.outputZip
         assert(os.path.exists(paradigmPathway))
         assert(os.path.exists(phenotypeFile))
         assert(os.path.exists(dataFile))
@@ -340,7 +350,7 @@ def main():
     logger.info("options: " + str(options))
     logger.info("starting make")
     writeScripts()
-    s = Stack(prepareOCCAM(paradigmPathway, scoreFile, phenotypeFile, None, dataFile, sampleList, filterParams, nNulls, os.getcwd()))
+    s = Stack(prepareOCCAM(paradigmPathway, scoreFile, phenotypeFile, None, dataFile, sampleList, filterParams, nNulls, outputZip, os.getcwd()))
     if options.jobFile:
         s.addToJobFile(options.jobFile)
     else:

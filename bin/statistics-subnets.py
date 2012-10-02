@@ -74,11 +74,16 @@ def main(args):
         totalLinks = 0
         for i in forInteractions.keys():
             totalLinks += len(forInteractions[i].keys())
-        (lNodes, lInteractions) = constructInteractions(sortConnected(forNodes, forInteractions, revInteractions, method = "size")[0], forNodes, forInteractions)
-        largestNodes = len(lNodes.keys())
-        largestLinks = 0
-        for i in lInteractions.keys():
-            largestLinks += len(lInteractions[i].keys())
+        componentSorted = sortConnected(forNodes, forInteractions, revInteractions, method = "size")
+        if len(componentSorted) != 0:  
+            (lNodes, lInteractions) = constructInteractions(componentSorted[0], forNodes, forInteractions)
+            largestNodes = len(lNodes.keys())
+            largestLinks = 0
+            for i in lInteractions.keys():
+                largestLinks += len(lInteractions[i].keys())
+        else:
+            largestNodes = 0
+            largestLinks = 0
         totNodes_list.append(totalNodes)
         totLinks_list.append(totalLinks)
         largestNodes_list.append(largestNodes)

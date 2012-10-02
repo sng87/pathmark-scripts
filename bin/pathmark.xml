@@ -1,11 +1,10 @@
 <tool id="pathmark" name="Pathmark" version="1.0.0">
   <description>Pathmark</description>
-  <command interpreter="python">jtPATHMARK.py --ipl $ipl --phenotype $phenotype --background $background 
+  <command interpreter="python">jtPATHMARK.py --ipl $ipl --phenotype $phenotype --background $background --oz $report
 #if str($pathway) != 'None':
   --pathway $pathway
 #end if
 --filter "${filter_low};${filter_high}"
---score $score
   </command>
   <inputs>
 	  <param name="ipl" type="data" format="ipl" label="PARADIGM IPL Matrix File"/>
@@ -16,7 +15,6 @@
 	  <param name="pathway" type="data" format="zip" label="Pathways Zip File" optional="true"/>
   </inputs>
   <outputs>
-      <data name="score" format="matrix"/>
+      <data name="report" format="zip"/>
   </outputs>
-  <parallelism method="remus_cmd"/>
 </tool>
