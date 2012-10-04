@@ -37,28 +37,33 @@ def writeScripts():
     Real = read.table(paste("stats_", phenotype, ".tab", sep=""), header=TRUE)
     Nulls = read.table(paste("stats_NULL_", phenotype, ".tab", sep=""), header=TRUE)
     nbreaks = 60
-
+    
+    zscore = c(as.character((Real$totNodes-mean(Nulls$totNodes))/sd(Nulls$totNodes)), as.character((Real$totLinks-mean(Nulls$totLinks))/sd(Nulls$totLinks)), as.character((Real$largest_netNodes-mean(Nulls$largest_netNodes))/sd(Nulls$largest_netNodes)), as.character((Real$largest_netLinks-mean(Nulls$largest_netLinks))/sd(Nulls$largest_netLinks)))
+    fileConn = file(paste(phenotype, ".stats", sep=""))
+    writeLines(zscore, fileConn)
+    close(fileConn)
+    
     xrange = c(min(Nulls$totNodes, Real$totNodes)-50, max(Nulls$totNodes, Real$totNodes)+50)
-    pdf(paste(phenotype, "_totNodes.pdf", sep=""), heigh=10, width=20)
-    hist(Nulls$totNodes, breaks=nbreaks, xlim=xrange, xlab="Number", main=paste("Number of Nodes for Subnet, z = ", as.character((Real$totNodes-mean(Nulls$totNodes))/sd(Nulls$totNodes)), sep=""))
+    png(paste(phenotype, "_total_netNodes.pdf", sep=""), heigh=10, width=20)
+    hist(Nulls$totNodes, breaks=nbreaks, xlim=xrange, xlab="Number", main=paste("Number of Nodes for Subnet, z = ", zscore[1], sep=""))
     abline(v = Real$totNodes, col="red", lty = 2)
     dev.off()
-
+    
     xrange = c(min(Nulls$totLinks, Real$totLinks)-50, max(Nulls$totLinks, Real$totLinks)+50)
-    pdf(paste(phenotype, "_totLinks.pdf", sep=""), heigh=10, width=20)
-    hist(Nulls$totLinks, breaks=nbreaks, xlim=xrange, xlab="Number", main=paste("Number of Links for Subnet, z = ", as.character((Real$totLinks-mean(Nulls$totLinks))/sd(Nulls$totLinks)), sep=""))
+    png(paste(phenotype, "_total_netLinks.pdf", sep=""), heigh=10, width=20)
+    hist(Nulls$totLinks, breaks=nbreaks, xlim=xrange, xlab="Number", main=paste("Number of Links for Subnet, z = ", zscore[2], sep=""))
     abline(v = Real$totLinks, col="red", lty = 2)
     dev.off()
-
+    
     xrange = c(min(Nulls$largest_netNodes, Real$largest_netNodes)-50, max(Nulls$largest_netNodes, Real$largest_netNodes)+50)
-    pdf(paste(phenotype, "_largest_netNodes.pdf", sep=""), heigh=10, width=20)
-    hist(Nulls$largest_netNodes, breaks=nbreaks, xlim=xrange, xlab="Number", main=paste("Number of Nodes for Largest Component, z = ", as.character((Real$largest_netNodes-mean(Nulls$largest_netNodes))/sd(Nulls$largest_netNodes)), sep=""))
+    png(paste(phenotype, "_largest_netNodes.pdf", sep=""), heigh=10, width=20)
+    hist(Nulls$largest_netNodes, breaks=nbreaks, xlim=xrange, xlab="Number", main=paste("Number of Nodes for Largest Component, z = ", zscore[3], sep=""))
     abline(v = Real$largest_netNodes, col="red", lty = 2)
     dev.off()
-
+    
     xrange = c(min(Nulls$largest_netLinks, Real$largest_netLinks)-50, max(Nulls$largest_netLinks, Real$largest_netLinks)+50)
-    pdf(paste(phenotype, "_largest_netLinks.pdf", sep=""), heigh=10, width=20)
-    hist(Nulls$largest_netLinks, breaks=nbreaks, xlim=xrange, xlab="Number", main=paste("Number of Links for Largest Component, z = ", as.character((Real$largest_netLinks-mean(Nulls$largest_netLinks))/sd(Nulls$largest_netLinks)), sep=""))
+    png(paste(phenotype, "_largest_netLinks.pdf", sep=""), heigh=10, width=20)
+    hist(Nulls$largest_netLinks, breaks=nbreaks, xlim=xrange, xlab="Number", main=paste("Number of Links for Largest Component, z = ", zscore[4], sep=""))
     abline(v = Real$largest_netLinks, col="red", lty = 2)
     dev.off()
     """
